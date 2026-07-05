@@ -1,0 +1,1144 @@
+openapi: 3.1.0
+info:
+  title: Apex Karting Mobile API
+  version: 1.0.0-mvp
+  summary: API-контракт MVP клиентского мобильного приложения картинг-центра «Апекс»
+  description: |
+    Спецификация описывает API, который требуется клиентскому мобильному приложению MVP:
+    авторизация по номеру телефона и SMS-коду, получение слотов на ближайшие 7 дней,
+    просмотр деталей слота, создание брони, просмотр своих броней, отмена брони клиентом
+    и регистрация устройства для получения push-уведомлений.
+
+    Существующий backend остаётся источником истины по расписанию, слотам, свободным местам,
+    статусам, отсутствию двойных броней, ручному подтверждению / отклонению броней и отменам центра.
+    Административные действия не входят в клиентский API мобильного приложения.
+  x-source-documents:
+    - business-requirements.md
+    - functional-requirements.md
+    - non-functional-requirements.md
+    - use-cases.md
+    - user-stories.md
+    - data-model.md
+    - api-sequence.md
+    - SCR-001..SCR-013 design statements
+  x-mvp-exclusions:
+    - online_payment
+    - group_booking
+    - date_time_track_filters
+    - equipment_selection
+    - marshal_rating
+    - loyalty_program
+    - admin_actions
+    - automatic_booking_confirmation
+    - booking_confirmation_timeout
+servers:
+  - url: https://api.apex-karting.example.com/v1
+    description: Placeholder server URL; заменить на фактический base URL существующего backend.
+
+tags:
+  - name: Auth
+    description: Авторизация клиента по номеру телефона и SMS-коду.
+  - name: RideSlots
+    description: Чтение расписания и деталей доступных заездов.
+  - name: Bookings
+    description: Создание, просмотр и клиентская отмена броней.
+  - name: Push
+    description: Регистрация устройства для получения push-уведомлений MVP.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/request-sms:
+    post:
+      tags: [Auth]
+      operationId: requestSmsCode
+      summary: Запросить SMS-код для входа
+      description: |
+        Используется на экране ввода номера телефона. После валидного номера backend инициирует отправку SMS-кода.
+        Endpoint не должен раскрывать технические детали ошибки отправки кода клиентскому приложению.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestSmsCodeRequest'
+            examples:
+              default:
+                value:
+                  phone: '+79991234567'
+      responses:
+        '202':
+          description: SMS-код принят к отправке.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestSmsCodeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/verify-sms:
+    post:
+      tags: [Auth]
+      operationId: verifySmsCode
+      summary: Подтвердить SMS-код и получить access token
+      description: |
+        Используется после ввода SMS-кода. При успехе backend создаёт или находит клиента по номеру телефона
+        и возвращает токен авторизации для дальнейших запросов мобильного приложения.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifySmsCodeRequest'
+            examples:
+              default:
+                value:
+                  phone: '+79991234567'
+                  code: '123456'
+      responses:
+        '200':
+          description: Авторизация успешна.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: SMS-код неверный или истёк.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  value:
+                    errorCode: INVALID_SMS_CODE
+                    message: Код не подошёл. Проверьте SMS и попробуйте ещё раз.
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /ride-slots:
+    get:
+      tags: [RideSlots]
+      operationId: listRideSlots
+      summary: Получить список слотов
+      description: |
+        Возвращает слоты для экрана «Заезды». По умолчанию backend возвращает период ближайших 7 дней
+        от текущего момента. Фильтры по дате, времени и трассе не входят в MVP.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          description: Количество дней от текущего момента. Для MVP клиент использует значение по умолчанию 7.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 7
+            default: 7
+        - name: includeUnavailable
+          in: query
+          required: false
+          description: Включать занятые и отменённые слоты, чтобы приложение могло показать статусы «Мест нет» и «Отменён».
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Список слотов. Пустой массив означает отсутствие расписания на ближайшие дни.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideSlotListResponse'
+              examples:
+                default:
+                  value:
+                    periodDays: 7
+                    items:
+                      - slotId: slot_123
+                        startAt: '2026-07-06T18:00:00+02:00'
+                        durationMinutes: 15
+                        trackConfiguration:
+                          trackConfigurationId: track_short
+                          name: Короткая трасса
+                          type: SHORT
+                        rideLevel:
+                          rideLevelId: level_novice
+                          name: Новичковый
+                          code: NOVICE
+                        capacity: 10
+                        freePlaces: 3
+                        price:
+                          amount: '2500.00'
+                          currency: RUB
+                        status: AVAILABLE
+                        address: 'г. Москва, ул. Примерная, 1'
+                        canBook: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /ride-slots/{slotId}:
+    get:
+      tags: [RideSlots]
+      operationId: getRideSlot
+      summary: Получить детали слота
+      description: |
+        Возвращает данные для экрана деталей слота: параметры заезда, маршала, адрес, место сбора,
+        правила безопасности, условия отмены и признак доступности бронирования.
+      parameters:
+        - $ref: '#/components/parameters/SlotId'
+      responses:
+        '200':
+          description: Детали слота.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideSlotDetails'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /bookings:
+    post:
+      tags: [Bookings]
+      operationId: createBooking
+      summary: Создать бронь на одно место
+      description: |
+        Создаёт одну бронь на выбранный слот. Групповое бронирование в MVP не поддерживается.
+        Бронь создаётся только в статусе PENDING_CONFIRMATION и далее подтверждается или отклоняется
+        администратором в существующей админке вне клиентского API.
+
+        Backend повторно проверяет доступность слота, свободные места, отсутствие двойной брони,
+        минимальный возраст и согласия. Клиентская валидация не заменяет серверную.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+            examples:
+              adult:
+                value:
+                  slotId: slot_123
+                  profile:
+                    fullName: Иван Иванов
+                    phone: '+79991234567'
+                    email: ivan@example.com
+                    age: 18
+                  consents:
+                    safetyRulesAccepted: true
+                    parentalConsentAccepted: false
+              minor16to17:
+                value:
+                  slotId: slot_123
+                  profile:
+                    fullName: Иван Иванов
+                    phone: '+79991234567'
+                    email: ivan@example.com
+                    age: 17
+                  consents:
+                    safetyRulesAccepted: true
+                    parentalConsentAccepted: true
+      responses:
+        '201':
+          description: Бронь создана и ожидает подтверждения.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              examples:
+                pending:
+                  value:
+                    bookingId: booking_123
+                    customerId: customer_123
+                    slotId: slot_123
+                    status: PENDING_CONFIRMATION
+                    createdAt: '2026-07-05T12:00:00+02:00'
+                    canCancel: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Бронь невозможна из-за состояния слота, отсутствия мест или двойной брони.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noFreePlaces:
+                  value:
+                    errorCode: NO_FREE_PLACES
+                    message: Мест больше нет.
+                slotCancelled:
+                  value:
+                    errorCode: SLOT_CANCELLED
+                    message: Этот заезд отменён центром.
+                duplicateBooking:
+                  value:
+                    errorCode: DUPLICATE_BOOKING
+                    message: У вас уже есть бронь на этот заезд.
+        '422':
+          description: Возраст, согласия или обязательные данные не соответствуют правилам бронирования.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rulesViolation:
+                  value:
+                    errorCode: BOOKING_RULES_VIOLATION
+                    message: Проверьте данные и согласия для бронирования.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      tags: [Bookings]
+      operationId: listMyBookings
+      summary: Получить мои брони
+      description: |
+        Возвращает брони текущего авторизованного клиента с актуальными статусами.
+        Отменённые, отклонённые, завершённые брони и неявки не должны скрываться, если backend возвращает их как пользовательские брони.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Необязательный фильтр по статусу брони. В MVP приложение может не использовать фильтры в интерфейсе.
+          schema:
+            $ref: '#/components/schemas/BookingStatus'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список броней клиента.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /bookings/{bookingId}:
+    get:
+      tags: [Bookings]
+      operationId: getBooking
+      summary: Получить детали брони
+      description: |
+        Возвращает полную информацию по брони, её актуальный статус, данные заезда, условия отмены,
+        причину отмены центром при наличии и доступные действия по статусу.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Детали брони.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetails'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /bookings/{bookingId}/cancel:
+    post:
+      tags: [Bookings]
+      operationId: cancelBookingByClient
+      summary: Отменить бронь клиентом
+      description: |
+        Клиент может отменить только активную или ожидающую подтверждения бронь, если до старта заезда осталось больше 1 часа.
+        При успешной отмене место сразу освобождается backend, а бронь получает статус CANCELLED_BY_CLIENT.
+        Причина отмены от клиента в MVP не запрашивается.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelBookingRequest'
+            examples:
+              empty:
+                value: {}
+      responses:
+        '200':
+          description: Бронь успешно отменена клиентом.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              examples:
+                cancelled:
+                  value:
+                    bookingId: booking_123
+                    customerId: customer_123
+                    slotId: slot_123
+                    status: CANCELLED_BY_CLIENT
+                    createdAt: '2026-07-05T12:00:00+02:00'
+                    canceledAt: '2026-07-05T13:00:00+02:00'
+                    cancelSource: CLIENT
+                    canCancel: false
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Отмена недоступна из-за статуса брони или порога в 1 час.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unavailable:
+                  value:
+                    errorCode: ACTION_UNAVAILABLE
+                    message: Отменить бронь через приложение можно более чем за 1 час до старта.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /push/device-tokens:
+    post:
+      tags: [Push]
+      operationId: registerPushDeviceToken
+      summary: Зарегистрировать device token для push-уведомлений
+      description: |
+        Endpoint нужен мобильному приложению для получения push-уведомлений MVP: подтверждение брони,
+        отклонение брони, напоминания за 24 часа и за 2 часа, отмена заезда центром.
+        Push о создании pending-брони, отмене клиентом и запрете отмены из-за порога в 1 час не отправляются в MVP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPushDeviceTokenRequest'
+      responses:
+        '201':
+          description: Device token зарегистрирован.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushDeviceToken'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /push/device-tokens/{deviceTokenId}:
+    delete:
+      tags: [Push]
+      operationId: unregisterPushDeviceToken
+      summary: Удалить device token
+      description: Используется при выходе из аккаунта или отзыве push-токена на устройстве.
+      parameters:
+        - name: deviceTokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Device token удалён.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    SlotId:
+      name: slotId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Идентификатор слота / заезда.
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Идентификатор брони.
+
+  responses:
+    ValidationError:
+      description: Ошибка валидации входных данных.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation:
+              value:
+                errorCode: VALIDATION_ERROR
+                message: Проверьте заполненные данные.
+                fields:
+                  - field: phone
+                    message: Проверьте номер телефона.
+    UnauthorizedError:
+      description: Клиент не авторизован или токен недействителен.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unauthorized:
+              value:
+                errorCode: UNAUTHORIZED
+                message: Войдите по номеру телефона.
+    ForbiddenError:
+      description: Действие запрещено для текущего клиента.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            forbidden:
+              value:
+                errorCode: FORBIDDEN
+                message: Действие недоступно.
+    NotFoundError:
+      description: Запрошенный объект не найден.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              value:
+                errorCode: NOT_FOUND
+                message: Данные не найдены.
+    RateLimitError:
+      description: Слишком много попыток.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            tooManyRequests:
+              value:
+                errorCode: RATE_LIMIT_EXCEEDED
+                message: Слишком много попыток. Попробуйте позже.
+    InternalError:
+      description: Внутренняя ошибка backend без раскрытия технических деталей клиенту.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal:
+              value:
+                errorCode: INTERNAL_ERROR
+                message: Не удалось выполнить действие. Попробуйте ещё раз.
+
+  schemas:
+    RequestSmsCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [phone]
+      properties:
+        phone:
+          $ref: '#/components/schemas/Phone'
+
+    RequestSmsCodeResponse:
+      type: object
+      additionalProperties: false
+      required: [maskedPhone, expiresInSeconds]
+      properties:
+        maskedPhone:
+          type: string
+          description: Номер телефона в маскированном или отображаемом виде для экрана ввода кода.
+          example: '+7 *** ***-45-67'
+        expiresInSeconds:
+          type: integer
+          minimum: 1
+          example: 300
+        resendAvailableInSeconds:
+          type: integer
+          minimum: 0
+          example: 60
+
+    VerifySmsCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [phone, code]
+      properties:
+        phone:
+          $ref: '#/components/schemas/Phone'
+        code:
+          type: string
+          minLength: 4
+          maxLength: 8
+          pattern: '^[0-9]+$'
+          example: '123456'
+
+    AuthTokenResponse:
+      type: object
+      additionalProperties: false
+      required: [accessToken, tokenType, expiresInSeconds, customer]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresInSeconds:
+          type: integer
+          minimum: 1
+        customer:
+          $ref: '#/components/schemas/Customer'
+
+    Customer:
+      type: object
+      additionalProperties: false
+      required: [customerId, phone, createdAt]
+      properties:
+        customerId:
+          type: string
+          example: customer_123
+        phone:
+          $ref: '#/components/schemas/Phone'
+        createdAt:
+          type: string
+          format: date-time
+
+    CustomerProfile:
+      type: object
+      additionalProperties: false
+      required: [fullName, phone, email, age]
+      properties:
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: Иван Иванов
+        phone:
+          $ref: '#/components/schemas/Phone'
+        email:
+          type: string
+          format: email
+          example: ivan@example.com
+        age:
+          type: integer
+          minimum: 0
+          maximum: 120
+          example: 18
+
+    BookingConsents:
+      type: object
+      additionalProperties: false
+      required: [safetyRulesAccepted]
+      properties:
+        safetyRulesAccepted:
+          type: boolean
+          description: Обязательное согласие с правилами безопасности.
+        parentalConsentAccepted:
+          type: boolean
+          default: false
+          description: Обязательно true, если возраст клиента меньше 18 лет.
+
+    CreateBookingRequest:
+      type: object
+      additionalProperties: false
+      required: [slotId, profile, consents]
+      properties:
+        slotId:
+          type: string
+          example: slot_123
+        profile:
+          $ref: '#/components/schemas/CustomerProfile'
+        consents:
+          $ref: '#/components/schemas/BookingConsents'
+
+    CancelBookingRequest:
+      type: object
+      additionalProperties: false
+      description: В MVP причина отмены клиентом не запрашивается.
+      properties: {}
+
+    RideSlotListResponse:
+      type: object
+      additionalProperties: false
+      required: [periodDays, items]
+      properties:
+        periodDays:
+          type: integer
+          enum: [7]
+          description: Период отображения по умолчанию для MVP.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RideSlotSummary'
+
+    RideSlotSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - slotId
+        - startAt
+        - durationMinutes
+        - trackConfiguration
+        - rideLevel
+        - capacity
+        - freePlaces
+        - price
+        - status
+        - address
+        - canBook
+      properties:
+        slotId:
+          type: string
+          example: slot_123
+        startAt:
+          type: string
+          format: date-time
+          example: '2026-07-06T18:00:00+02:00'
+        durationMinutes:
+          type: integer
+          minimum: 1
+          example: 15
+        trackConfiguration:
+          $ref: '#/components/schemas/TrackConfiguration'
+        rideLevel:
+          $ref: '#/components/schemas/RideLevel'
+        capacity:
+          type: integer
+          minimum: 0
+          example: 10
+        freePlaces:
+          type: integer
+          minimum: 0
+          example: 3
+        price:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/RideSlotStatus'
+        address:
+          type: string
+          example: 'г. Москва, ул. Примерная, 1'
+        canBook:
+          type: boolean
+          description: false для статусов NO_FREE_PLACES и CANCELLED.
+
+    RideSlotDetails:
+      allOf:
+        - $ref: '#/components/schemas/RideSlotSummary'
+        - type: object
+          additionalProperties: false
+          required:
+            - marshal
+            - meetingPoint
+            - safetyRules
+            - cancellationTerms
+          properties:
+            marshal:
+              $ref: '#/components/schemas/Marshal'
+            meetingPoint:
+              type: string
+              example: Главный вход у стойки регистрации
+            safetyRules:
+              type: string
+              example: Перед заездом соблюдайте правила безопасности и инструкции маршала.
+            cancellationTerms:
+              type: string
+              example: Отменить бронь можно более чем за 1 час до старта.
+            centerCancellation:
+              $ref: '#/components/schemas/CenterCancellation'
+
+    TrackConfiguration:
+      type: object
+      additionalProperties: false
+      required: [trackConfigurationId, name, type]
+      properties:
+        trackConfigurationId:
+          type: string
+          example: track_short
+        name:
+          type: string
+          example: Короткая трасса
+        type:
+          type: string
+          enum: [SHORT, LONG]
+          description: Короткая или длинная конфигурация трассы.
+
+    RideLevel:
+      type: object
+      additionalProperties: false
+      required: [rideLevelId, name, code]
+      properties:
+        rideLevelId:
+          type: string
+          example: level_novice
+        name:
+          type: string
+          example: Новичковый
+        code:
+          type: string
+          enum: [NOVICE, EXPERIENCED]
+
+    Marshal:
+      type: object
+      additionalProperties: false
+      required: [marshalId, name]
+      properties:
+        marshalId:
+          type: string
+          example: marshal_123
+        name:
+          type: string
+          example: Алексей
+
+    Money:
+      type: object
+      additionalProperties: false
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          pattern: '^\\d+(\\.\\d{2})$'
+          example: '2500.00'
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: RUB
+
+    RideSlotStatus:
+      type: string
+      enum:
+        - AVAILABLE
+        - NO_FREE_PLACES
+        - CANCELLED
+      x-enum-descriptions:
+        AVAILABLE: Есть места, слот доступен для бронирования.
+        NO_FREE_PLACES: Мест нет, бронирование недоступно.
+        CANCELLED: Заезд отменён центром, бронирование недоступно.
+
+    BookingListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingSummary'
+        nextCursor:
+          type: string
+          nullable: true
+
+    BookingSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - bookingId
+        - slotId
+        - status
+        - rideStartAt
+        - rideTitle
+        - address
+        - canCancel
+      properties:
+        bookingId:
+          type: string
+          example: booking_123
+        slotId:
+          type: string
+          example: slot_123
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        rideStartAt:
+          type: string
+          format: date-time
+          example: '2026-07-06T18:00:00+02:00'
+        rideTitle:
+          type: string
+          description: Краткое описание заезда / трассы для карточки брони.
+          example: Короткая трасса · Новичковый
+        address:
+          type: string
+          example: 'г. Москва, ул. Примерная, 1'
+        canCancel:
+          type: boolean
+          description: true только для активной или ожидающей брони, если до старта больше 1 часа.
+
+    Booking:
+      type: object
+      additionalProperties: false
+      required: [bookingId, customerId, slotId, status, createdAt, canCancel]
+      properties:
+        bookingId:
+          type: string
+          example: booking_123
+        customerId:
+          type: string
+          example: customer_123
+        slotId:
+          type: string
+          example: slot_123
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        createdAt:
+          type: string
+          format: date-time
+        canceledAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelSource:
+          $ref: '#/components/schemas/CancelSource'
+        canCancel:
+          type: boolean
+        cancellationUnavailableReason:
+          type: string
+          nullable: true
+          example: Отменить бронь через приложение можно более чем за 1 час до старта.
+
+    BookingDetails:
+      allOf:
+        - $ref: '#/components/schemas/Booking'
+        - type: object
+          additionalProperties: false
+          required: [rideSlot, availableActions]
+          properties:
+            rideSlot:
+              $ref: '#/components/schemas/RideSlotDetails'
+            availableActions:
+              type: array
+              items:
+                $ref: '#/components/schemas/BookingAction'
+            centerCancellation:
+              $ref: '#/components/schemas/CenterCancellation'
+
+    BookingStatus:
+      type: string
+      enum:
+        - PENDING_CONFIRMATION
+        - ACTIVE
+        - CANCELLED_BY_CLIENT
+        - CANCELLED_BY_CENTER
+        - REJECTED_BY_CENTER
+        - COMPLETED
+        - NO_SHOW
+      x-enum-descriptions:
+        PENDING_CONFIRMATION: Ожидает подтверждения.
+        ACTIVE: Активна.
+        CANCELLED_BY_CLIENT: Отменена клиентом.
+        CANCELLED_BY_CENTER: Отменена центром.
+        REJECTED_BY_CENTER: Отклонена центром.
+        COMPLETED: Завершена.
+        NO_SHOW: Неявка.
+
+    BookingAction:
+      type: string
+      enum:
+        - CANCEL_BOOKING
+        - CHOOSE_ANOTHER_RIDE
+      x-enum-descriptions:
+        CANCEL_BOOKING: Отменить бронь; доступно только при статусах PENDING_CONFIRMATION или ACTIVE и более чем за 1 час до старта.
+        CHOOSE_ANOTHER_RIDE: Выбрать другой заезд; используется для отменённых или отклонённых броней.
+
+    CancelSource:
+      type: string
+      nullable: true
+      enum:
+        - CLIENT
+        - CENTER
+        - null
+
+    CenterCancellation:
+      type: object
+      additionalProperties: false
+      required: [reasonType, canceledAt]
+      properties:
+        reasonType:
+          $ref: '#/components/schemas/CenterCancellationReasonType'
+        reasonText:
+          type: string
+          nullable: true
+          description: Свободный текст обязателен, если reasonType = OTHER.
+        canceledAt:
+          type: string
+          format: date-time
+
+    CenterCancellationReasonType:
+      type: string
+      enum:
+        - WEATHER
+        - TECHNICAL_FAILURE
+        - TRACK_UNAVAILABLE
+        - MARSHAL_UNAVAILABLE
+        - ORGANIZATIONAL
+        - OTHER
+      x-enum-descriptions:
+        WEATHER: Погодные условия.
+        TECHNICAL_FAILURE: Техническая неисправность.
+        TRACK_UNAVAILABLE: Недоступность трассы.
+        MARSHAL_UNAVAILABLE: Недоступность маршала.
+        ORGANIZATIONAL: Организационная причина.
+        OTHER: Другое.
+
+    RegisterPushDeviceTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [platform, token]
+      properties:
+        platform:
+          type: string
+          enum: [IOS, ANDROID]
+        token:
+          type: string
+          minLength: 1
+        appVersion:
+          type: string
+          example: 1.0.0
+        locale:
+          type: string
+          example: ru-RU
+
+    PushDeviceToken:
+      type: object
+      additionalProperties: false
+      required: [deviceTokenId, platform, createdAt]
+      properties:
+        deviceTokenId:
+          type: string
+          example: device_token_123
+        platform:
+          type: string
+          enum: [IOS, ANDROID]
+        createdAt:
+          type: string
+          format: date-time
+
+    PushNotificationPayload:
+      type: object
+      additionalProperties: false
+      description: Документированная структура payload для push-уведомлений, отправляемых backend / инфраструктурой уведомлений.
+      required: [type, bookingId, title, body]
+      properties:
+        type:
+          $ref: '#/components/schemas/PushNotificationType'
+        bookingId:
+          type: string
+          description: Используется приложением для перехода на детали брони.
+        title:
+          type: string
+        body:
+          type: string
+        rideStartAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PushNotificationType:
+      type: string
+      enum:
+        - BOOKING_CONFIRMED
+        - BOOKING_REJECTED
+        - RIDE_REMINDER_24H
+        - RIDE_REMINDER_2H
+        - RIDE_CANCELLED_BY_CENTER
+      x-excluded-from-mvp:
+        - BOOKING_CREATED_PENDING
+        - BOOKING_CANCELLED_BY_CLIENT
+        - CANCELLATION_DENIED_1H
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: Пользовательское сообщение без технических деталей.
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          example: profile.email
+        message:
+          type: string
+          example: Заполните это поле.
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - INVALID_SMS_CODE
+        - RATE_LIMIT_EXCEEDED
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - NO_FREE_PLACES
+        - SLOT_CANCELLED
+        - DUPLICATE_BOOKING
+        - BOOKING_RULES_VIOLATION
+        - ACTION_UNAVAILABLE
+        - INTERNAL_ERROR
+      x-enum-descriptions:
+        NO_FREE_PLACES: На слоте нет свободных мест.
+        SLOT_CANCELLED: Слот отменён центром.
+        DUPLICATE_BOOKING: У клиента уже есть бронь на этот заезд.
+        BOOKING_RULES_VIOLATION: Возраст, согласия или обязательные данные не соответствуют правилам.
+        ACTION_UNAVAILABLE: Backend считает действие недоступным.
+        UNAUTHORIZED: Клиент не авторизован или токен недействителен.
+
+    Phone:
+      type: string
+      description: Телефон в международном формате E.164.
+      pattern: '^\\+[1-9]\\d{7,14}$'
+      example: '+79991234567'
