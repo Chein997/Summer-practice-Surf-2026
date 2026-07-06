@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Апекс — Web Demo</title>
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --card: #ffffff;
+      --text: #171717;
+      --muted: #6f6a61;
+      --line: #e5ded2;
+      --accent: #151515;
+      --green: #2f8f46;
+      --red: #c7352c;
+      --yellow: #f2c94c;
+      --radius: 22px;
+      --shadow: 0 16px 40px rgba(30, 25, 18, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f5efe4, #ebe1d2);
+      color: var(--text);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(245, 239, 228, .88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(229, 222, 210, .8);
+    }
+    .header-inner {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 18px 18px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-size: 22px;
+    }
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 16px;
+      background: #151515;
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    .api-box {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: min(520px, 55vw);
+    }
+    .api-box input { flex: 1; }
+    main {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 24px 18px 60px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .api-box { min-width: 0; width: 100%; }
+      .header-inner { flex-direction: column; align-items: stretch; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(229, 222, 210, .9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: -0.03em; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 21px; margin-bottom: 12px; }
+    h3 { font-size: 17px; margin-bottom: 8px; }
+    p { color: var(--muted); line-height: 1.5; }
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #3e3931;
+      display: block;
+      margin: 10px 0 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 12px 13px;
+      font-size: 15px;
+      background: #fbfaf7;
+      color: var(--text);
+      outline: none;
+    }
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #111;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: transform .08s ease, opacity .12s ease;
+    }
+    button:hover { opacity: .88; }
+    button:active { transform: scale(.98); }
+    button.secondary {
+      background: #f4f0e8;
+      color: #151515;
+      border: 1px solid var(--line);
+    }
+    button.danger { background: var(--red); }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .row > * { flex: 1; }
+    .row button { flex: 0 0 auto; }
+    .status {
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: #f6f2eb;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .status.ok { background: #eaf7ed; color: #216c35; }
+    .status.err { background: #ffeded; color: #9b2922; }
+    .token {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .slot-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 15px;
+      background: #fffdfa;
+    }
+    .slot-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #f2eee6;
+      color: #4e473d;
+      white-space: nowrap;
+    }
+    .pill.green { background: #eaf7ed; color: #216c35; }
+    .pill.red { background: #ffeded; color: #9b2922; }
+    .pill.yellow { background: #fff7d6; color: #775e00; }
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+    .kv span:first-child { color: var(--muted); }
+    pre {
+      margin: 0;
+      padding: 14px;
+      border-radius: 18px;
+      background: #151515;
+      color: #e9e1d4;
+      overflow: auto;
+      min-height: 160px;
+      max-height: 520px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 12px 0 0;
+    }
+    .tabs button {
+      background: #f4f0e8;
+      color: #151515;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+    .tabs button.active {
+      background: #151515;
+      color: #fff;
+      border-color: #151515;
+    }
+    .hidden { display: none; }
+    .muted { color: var(--muted); }
+    .danger-text { color: var(--red); }
+    .success-text { color: var(--green); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div>
+          <div>Апекс Web Demo</div>
+          <div class="muted" style="font-size:13px;font-weight:600;letter-spacing:0">auth → slots → booking → cancel</div>
+        </div>
+      </div>
+      <div class="api-box">
+        <input id="apiBase" value="http://127.0.0.1:8082" />
+        <button onclick="saveApiBase()">OK</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1>Проверка MVP в браузере</h1>
+      <p>
+        Эта страница ходит напрямую в твой локальный backend.
+        Сначала запусти API на <b>8082</b>, затем проходи шаги слева.
+      </p>
+      <div class="tabs">
+        <button class="active" onclick="showTab('tab-flow', this)">Flow</button>
+        <button onclick="showTab('tab-debug', this)">Debug JSON</button>
+        <button onclick="showTab('tab-help', this)">Как запустить</button>
+      </div>
+    </section>
+
+    <div id="tab-flow" class="grid">
+      <aside>
+        <div class="card">
+          <h2>1. Backend</h2>
+          <button onclick="checkHealth()">Проверить health/ready</button>
+          <div id="healthStatus" class="status">Ещё не проверяли.</div>
+        </div>
+
+        <div class="card">
+          <h2>2. Авторизация</h2>
+          <label>Телефон</label>
+          <input id="phone" value="+79990000001" />
+          <div class="row" style="margin-top:10px">
+            <button onclick="requestSms()">Запросить SMS</button>
+            <button class="secondary" onclick="verifySms()">Войти кодом 1111</button>
+          </div>
+          <div id="authStatus" class="status">Токена пока нет.</div>
+          <div class="token muted" id="tokenView"></div>
+        </div>
+
+        <div class="card">
+          <h2>3. Push-token</h2>
+          <label>Platform</label>
+          <select id="pushPlatform">
+            <option>WEB</option>
+            <option>ANDROID</option>
+            <option>IOS</option>
+          </select>
+          <label>Token</label>
+          <input id="pushToken" value="web-demo-token" />
+          <div class="row" style="margin-top:10px">
+            <button onclick="registerPush()">Сохранить</button>
+            <button class="secondary" onclick="deletePush()">Удалить</button>
+          </div>
+          <div id="pushStatus" class="status">Push ещё не проверяли.</div>
+        </div>
+      </aside>
+
+      <section>
+        <div class="card">
+          <div class="row">
+            <div>
+              <h2>4. Слоты</h2>
+              <p style="margin:0 0 12px">Загрузи список, выбери слот и создай бронь.</p>
+            </div>
+            <button onclick="loadSlots()">Загрузить слоты</button>
+          </div>
+          <div id="slotsStatus" class="status">Слоты ещё не загружены.</div>
+          <div id="slots" class="slots"></div>
+        </div>
+
+        <div class="card">
+          <h2>5. Бронирование</h2>
+          <label>Выбранный slotId</label>
+          <input id="selectedSlotId" placeholder="Нажми «Выбрать» на карточке слота" />
+
+          <div class="row">
+            <div>
+              <label>Имя</label>
+              <input id="fullName" value="Тестовый Клиент" />
+            </div>
+            <div>
+              <label>Возраст</label>
+              <input id="age" type="number" value="24" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Email</label>
+              <input id="email" value="test@example.com" />
+            </div>
+            <div>
+              <label>Телефон участника</label>
+              <input id="profilePhone" value="+79990000001" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <button onclick="createBooking()">Создать бронь</button>
+            <button class="secondary" onclick="loadBookings()">Мои брони</button>
+          </div>
+          <div id="bookingStatus" class="status">Бронь ещё не создавали.</div>
+        </div>
+
+        <div class="card">
+          <h2>6. Мои брони</h2>
+          <div id="bookingsStatus" class="status">Список броней ещё не загружен.</div>
+          <div id="bookings"></div>
+        </div>
+      </section>
+    </div>
+
+    <section id="tab-debug" class="hidden">
+      <div class="card">
+        <h2>Последний ответ API</h2>
+        <pre id="debug">Пока нет запросов.</pre>
+      </div>
+    </section>
+
+    <section id="tab-help" class="hidden">
+      <div class="card">
+        <h2>Как запустить</h2>
+        <h3>Backend</h3>
+        <pre>cd /Users/chein/Documents/Univer/практика/backend
+HTTP_ADDR=":8082" DATABASE_URL="postgres://apex:apex@127.0.0.1:5434/apex?sslmode=disable" make run</pre>
+        <h3 style="margin-top:16px">Web demo</h3>
+        <pre>cd /Users/chein/Documents/Univer/практика
+python3 -m http.server 5173 --directory web-demo</pre>
+        <p>Открой в браузере: <b>http://127.0.0.1:5173</b></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let accessToken = localStorage.getItem("apexAccessToken") || "";
+    let lastBookingId = localStorage.getItem("apexLastBookingId") || "";
+
+    const $ = (id) => document.getElementById(id);
+
+    function apiBase() {
+      return $("apiBase").value.replace(/\/$/, "");
+    }
+
+    function saveApiBase() {
+      localStorage.setItem("apexApiBase", apiBase());
+      ok("healthStatus", "API base сохранён: " + apiBase());
+    }
+
+    function init() {
+      const savedBase = localStorage.getItem("apexApiBase");
+      if (savedBase) $("apiBase").value = savedBase;
+      renderToken();
+    }
+
+    function showTab(id, btn) {
+      ["tab-flow", "tab-debug", "tab-help"].forEach(x => $(x).classList.add("hidden"));
+      $(id).classList.remove("hidden");
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+
+    function status(id, text, mode) {
+      const el = $(id);
+      el.textContent = text;
+      el.className = "status" + (mode ? " " + mode : "");
+    }
+
+    function ok(id, text) { status(id, text, "ok"); }
+    function err(id, text) { status(id, text, "err"); }
+
+    function renderToken() {
+      $("tokenView").textContent = accessToken ? "TOKEN: " + accessToken : "";
+      if (accessToken) ok("authStatus", "Пользователь авторизован.");
+    }
+
+    function debug(data) {
+      $("debug").textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    async function request(path, options = {}) {
+      const headers = options.headers || {};
+      if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+      if (options.auth) headers["Authorization"] = "Bearer " + accessToken;
+      const res = await fetch(apiBase() + path, {...options, headers});
+      const text = await res.text();
+      let data;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      debug({status: res.status, ok: res.ok, data});
+      if (!res.ok) {
+        const msg = data && data.message ? `${data.code}: ${data.message}` : text || res.statusText;
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function checkHealth() {
+      try {
+        const h = await request("/healthz");
+        const r = await request("/readyz");
+        ok("healthStatus", `health=${h.status}, ready=${r.status}`);
+      } catch (e) {
+        err("healthStatus", e.message);
+      }
+    }
+
+    async function requestSms() {
+      try {
+        const phone = $("phone").value.trim();
+        const data = await request("/auth/request-sms", {
+          method: "POST",
+          body: JSON.stringify({phone})
+        });
+        ok("authStatus", "SMS запрошен: " + data.status + ". Dev-код: 1111");
+      } catch (e) {
+        err("authStatus", e.message);
+      }
+    }
+
+    async function verifySms() {
+      try {
+        const phone = $("phone").value.trim();
+        const data = await request("/auth/verify-sms", {
+          method: "POST",
+          body: JSON.stringify({phone, code: "1111"})
+        });
+        accessToken = data.accessToken;
+        localStorage.setItem("apexAccessToken", accessToken);
+        ok("authStatus", "Вход выполнен.");
+        renderToken();
+      } catch (e) {
+        err("authStatus", e.message);
+      }
+    }
+
+    function statusPill(status) {
+      if (status === "AVAILABLE") return '<span class="pill green">AVAILABLE</span>';
+      if (status === "CANCELLED") return '<span class="pill red">CANCELLED</span>';
+      if (status === "NO_FREE_PLACES") return '<span class="pill yellow">NO FREE</span>';
+      return `<span class="pill">${escapeHtml(status || "UNKNOWN")}</span>`;
+    }
+
+    async function loadSlots() {
+      try {
+        const data = await request("/ride-slots?days=7&includeUnavailable=true");
+        const items = data.items || data.slots || data || [];
+        ok("slotsStatus", `Загружено слотов: ${items.length}`);
+        $("slots").innerHTML = items.map(renderSlot).join("");
+      } catch (e) {
+        err("slotsStatus", e.message);
+      }
+    }
+
+    function renderSlot(slot) {
+      const id = slot.id || slot.slotId;
+      const title = slot.title || slot.trackName || slot.trackConfigurationName || "Заезд";
+      const startsAt = slot.startsAt || slot.startAt || slot.startTime || "";
+      const freePlaces = slot.freePlaces ?? slot.free_places ?? "—";
+      const price = slot.price ? `${slot.price.amount ?? slot.price} ${slot.price.currency ?? ""}` : (slot.priceRub ? `${slot.priceRub} ₽` : "—");
+      const level = slot.levelName || slot.rideLevelName || slot.levelCode || "—";
+      const duration = slot.durationMinutes || slot.duration || "—";
+      return `
+        <div class="slot-card">
+          <div class="slot-title">
+            <div>
+              <h3>${escapeHtml(title)}</h3>
+              <div class="muted">${escapeHtml(formatDate(startsAt))}</div>
+            </div>
+            ${statusPill(slot.status)}
+          </div>
+          <div class="kv"><span>ID</span><span class="token">${escapeHtml(id)}</span></div>
+          <div class="kv"><span>Уровень</span><span>${escapeHtml(level)}</span></div>
+          <div class="kv"><span>Длительность</span><span>${escapeHtml(String(duration))} мин</span></div>
+          <div class="kv"><span>Места</span><span>${escapeHtml(String(freePlaces))}</span></div>
+          <div class="kv"><span>Цена</span><span>${escapeHtml(String(price))}</span></div>
+          <div class="row" style="margin-top:12px">
+            <button class="secondary" onclick="selectSlot('${escapeAttr(id)}')">Выбрать</button>
+            <button onclick="loadSlotDetails('${escapeAttr(id)}')">Детали</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectSlot(id) {
+      $("selectedSlotId").value = id;
+      ok("bookingStatus", "Выбран слот: " + id);
+    }
+
+    async function loadSlotDetails(id) {
+      try {
+        const data = await request("/ride-slots/" + encodeURIComponent(id));
+        selectSlot(id);
+        debug(data);
+        ok("slotsStatus", "Детали слота загружены. Смотри Debug JSON.");
+      } catch (e) {
+        err("slotsStatus", e.message);
+      }
+    }
+
+    async function createBooking() {
+      try {
+        if (!accessToken) throw new Error("Сначала войди по SMS.");
+        const payload = {
+          slotId: $("selectedSlotId").value.trim(),
+          profile: {
+            fullName: $("fullName").value.trim(),
+            phone: $("profilePhone").value.trim(),
+            email: $("email").value.trim(),
+            age: Number($("age").value)
+          },
+          safetyRulesAccepted: true,
+          parentalConsentAccepted: Number($("age").value) < 18
+        };
+        const data = await request("/bookings", {
+          method: "POST",
+          auth: true,
+          body: JSON.stringify(payload)
+        });
+        lastBookingId = data.id;
+        localStorage.setItem("apexLastBookingId", lastBookingId);
+        ok("bookingStatus", `Бронь создана: ${data.status || "OK"}\nID: ${lastBookingId}`);
+        await loadBookings();
+        await loadSlots();
+      } catch (e) {
+        err("bookingStatus", e.message);
+      }
+    }
+
+    async function loadBookings() {
+      try {
+        if (!accessToken) throw new Error("Сначала войди по SMS.");
+        const data = await request("/bookings", {auth: true});
+        const items = data.items || data.bookings || data || [];
+        ok("bookingsStatus", `Загружено броней: ${items.length}`);
+        $("bookings").innerHTML = items.length ? items.map(renderBooking).join("") : "<p>Броней нет.</p>";
+      } catch (e) {
+        err("bookingsStatus", e.message);
+      }
+    }
+
+    function renderBooking(b) {
+      const id = b.id || b.bookingId;
+      const status = b.status || "";
+      const canCancel = b.canCancel === true || ["PENDING_CONFIRMATION", "ACTIVE"].includes(status);
+      const slotId = b.slotId || (b.slot && b.slot.id) || "";
+      return `
+        <div class="slot-card" style="margin-bottom:12px">
+          <div class="slot-title">
+            <div>
+              <h3>Бронь</h3>
+              <div class="token">${escapeHtml(id)}</div>
+            </div>
+            ${bookingPill(status)}
+          </div>
+          <div class="kv"><span>slotId</span><span class="token">${escapeHtml(slotId)}</span></div>
+          <div class="kv"><span>canCancel</span><span>${canCancel ? "да" : "нет"}</span></div>
+          <div class="row" style="margin-top:12px">
+            <button class="secondary" onclick="loadBookingDetails('${escapeAttr(id)}')">Детали</button>
+            <button class="danger" ${canCancel ? "" : "disabled"} onclick="cancelBooking('${escapeAttr(id)}')">Отменить</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function bookingPill(status) {
+      if (status === "PENDING_CONFIRMATION") return '<span class="pill yellow">PENDING</span>';
+      if (status === "ACTIVE") return '<span class="pill green">ACTIVE</span>';
+      if (status === "CANCELLED_BY_CLIENT") return '<span class="pill red">CANCELLED</span>';
+      return `<span class="pill">${escapeHtml(status || "UNKNOWN")}</span>`;
+    }
+
+    async function loadBookingDetails(id) {
+      try {
+        const data = await request("/bookings/" + encodeURIComponent(id), {auth: true});
+        debug(data);
+        ok("bookingsStatus", "Детали брони загружены. Смотри Debug JSON.");
+      } catch (e) {
+        err("bookingsStatus", e.message);
+      }
+    }
+
+    async function cancelBooking(id) {
+      try {
+        if (!confirm("Отменить бронь?")) return;
+        const data = await request("/bookings/" + encodeURIComponent(id) + "/cancel", {
+          method: "POST",
+          auth: true
+        });
+        ok("bookingsStatus", `Бронь отменена: ${data.status}`);
+        await loadBookings();
+        await loadSlots();
+      } catch (e) {
+        err("bookingsStatus", e.message);
+      }
+    }
+
+    async function registerPush() {
+      try {
+        if (!accessToken) throw new Error("Сначала войди по SMS.");
+        const data = await request("/push/device-tokens", {
+          method: "POST",
+          auth: true,
+          body: JSON.stringify({
+            platform: $("pushPlatform").value,
+            token: $("pushToken").value,
+            appVersion: "web-demo",
+            locale: "ru-RU"
+          })
+        });
+        ok("pushStatus", "Push-token сохранён.");
+      } catch (e) {
+        err("pushStatus", e.message);
+      }
+    }
+
+    async function deletePush() {
+      try {
+        if (!accessToken) throw new Error("Сначала войди по SMS.");
+        await request("/push/device-tokens?token=" + encodeURIComponent($("pushToken").value), {
+          method: "DELETE",
+          auth: true
+        });
+        ok("pushStatus", "Push-token удалён.");
+      } catch (e) {
+        err("pushStatus", e.message);
+      }
+    }
+
+    function formatDate(value) {
+      if (!value) return "Дата не указана";
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return value;
+      return d.toLocaleString("ru-RU", {dateStyle: "medium", timeStyle: "short"});
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replaceAll("`", "&#096;");
+    }
+
+    init();
+  </script>
+</body>
+</html>

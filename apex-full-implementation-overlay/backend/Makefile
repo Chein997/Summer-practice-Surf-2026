@@ -3,7 +3,7 @@ SHELL := /bin/sh
 APP_NAME := apex-api
 HTTP_ADDR ?= :8080
 
-DATABASE_URL ?= postgres://apex:apex@127.0.0.1:5434/apex?sslmode=disable
+DATABASE_URL ?= postgres://apex:apex@127.0.0.1:5432/apex?sslmode=disable
 TEST_DATABASE_URL ?= postgres://apex:apex@127.0.0.1:5433/apex_test?sslmode=disable
 
 MIGRATIONS_DIR ?= ./migrations

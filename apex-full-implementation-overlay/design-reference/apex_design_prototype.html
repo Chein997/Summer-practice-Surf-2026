@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Апекс — дизайн экранов MVP</title>
+<style>
+:root{--bg:#eee8dd;--text:#171717;--muted:#6e6a61;--accent:#a7f85a}
+body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--text)}
+header{padding:42px 48px 18px}
+h1{font-size:42px;margin:0 0 10px}
+p{margin:0;color:var(--muted);font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:34px;padding:34px 48px 60px}
+.card{background:white;border-radius:32px;padding:18px;box-shadow:0 14px 34px rgba(23,23,23,.12)}
+.card img{width:100%;display:block;border-radius:24px}
+.caption{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-weight:700}
+.badge{background:var(--accent);border-radius:999px;padding:6px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>Апекс — дизайн экранов MVP</h1>
+<p>Статичный дизайн-прототип: 13 мобильных экранов, 750×1624 px. Основан на дизайн-ТЗ и текущих паттернах Compose-верстки.</p>
+</header>
+<main class="grid">
+<section class="card"><img src="scr-001_01_phone_login.png" alt="SCR-001"><div class="caption"><span>SCR-001</span><span class="badge">01 phone login</span></div></section>
+<section class="card"><img src="scr-002_02_sms_code.png" alt="SCR-002"><div class="caption"><span>SCR-002</span><span class="badge">02 sms code</span></div></section>
+<section class="card"><img src="scr-003_03_slot_list.png" alt="SCR-003"><div class="caption"><span>SCR-003</span><span class="badge">03 slot list</span></div></section>
+<section class="card"><img src="scr-004_04_empty_schedule.png" alt="SCR-004"><div class="caption"><span>SCR-004</span><span class="badge">04 empty schedule</span></div></section>
+<section class="card"><img src="scr-005_05_slot_details.png" alt="SCR-005"><div class="caption"><span>SCR-005</span><span class="badge">05 slot details</span></div></section>
+<section class="card"><img src="scr-006_06_booking_form.png" alt="SCR-006"><div class="caption"><span>SCR-006</span><span class="badge">06 booking form</span></div></section>
+<section class="card"><img src="scr-007_07_booking_pending.png" alt="SCR-007"><div class="caption"><span>SCR-007</span><span class="badge">07 booking pending</span></div></section>
+<section class="card"><img src="scr-008_08_my_bookings.png" alt="SCR-008"><div class="caption"><span>SCR-008</span><span class="badge">08 my bookings</span></div></section>
+<section class="card"><img src="scr-009_09_booking_details.png" alt="SCR-009"><div class="caption"><span>SCR-009</span><span class="badge">09 booking details</span></div></section>
+<section class="card"><img src="scr-010_10_cancel_confirm.png" alt="SCR-010"><div class="caption"><span>SCR-010</span><span class="badge">10 cancel confirm</span></div></section>
+<section class="card"><img src="scr-011_11_booking_cancelled.png" alt="SCR-011"><div class="caption"><span>SCR-011</span><span class="badge">11 booking cancelled</span></div></section>
+<section class="card"><img src="scr-012_12_action_error.png" alt="SCR-012"><div class="caption"><span>SCR-012</span><span class="badge">12 action error</span></div></section>
+<section class="card"><img src="scr-013_13_push_notifications.png" alt="SCR-013"><div class="caption"><span>SCR-013</span><span class="badge">13 push notifications</span></div></section>
+</main></body></html>
