@@ -2,72 +2,100 @@ package com.volna.app.apex.feature.bookingform
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.volna.app.apex.core.ui.ApexErrorBlock
-import com.volna.app.apex.core.ui.ApexPrimaryButton
-import com.volna.app.apex.core.ui.ApexScreen
-import com.volna.app.apex.core.ui.ApexSecondaryButton
-import com.volna.app.apex.core.ui.ApexTextField
+import androidx.compose.ui.unit.sp
+import com.volna.app.apex.design.ApexCheckRow
+import com.volna.app.apex.design.ApexErrorBlock
+import com.volna.app.apex.design.ApexInput
+import com.volna.app.apex.design.ApexPrimaryButton
+import com.volna.app.apex.design.ApexScreenWithBack
+import com.volna.app.apex.design.ShadowCard
 
 @Composable
 fun BookingFormScreen(
     state: BookingFormState,
     onEvent: (BookingFormEvent) -> Unit,
 ) {
-    ApexScreen(title = "Бронирование") {
-        ApexTextField(
+    ApexScreenWithBack(
+        screenCode = "SCR-006",
+        title = "Бронирование",
+        onBack = { onEvent(BookingFormEvent.BackClicked) },
+    ) {
+        ShadowCard {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Сегодня, 18:30 · Трасса А",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Text(
+                    text = "1 800 ₽",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            }
+            Text("1 место · центр подтвердит бронь вручную", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        ApexInput(
             value = state.fullName,
             onValueChange = { onEvent(BookingFormEvent.FullNameChanged(it)) },
             label = "Имя",
+            placeholder = "Алексей",
             error = state.fieldErrors["fullName"],
             enabled = !state.isLoading,
         )
-        ApexTextField(
+        ApexInput(
             value = state.phone,
             onValueChange = { onEvent(BookingFormEvent.PhoneChanged(it)) },
             label = "Телефон",
+            placeholder = "+7 900 123-45-67",
             error = state.fieldErrors["phone"],
             enabled = !state.isLoading,
         )
-        ApexTextField(
+        ApexInput(
             value = state.email,
             onValueChange = { onEvent(BookingFormEvent.EmailChanged(it)) },
             label = "Email",
+            placeholder = "name@example.com",
             error = state.fieldErrors["email"],
             enabled = !state.isLoading,
         )
-        ApexTextField(
+        ApexInput(
             value = state.age,
             onValueChange = { onEvent(BookingFormEvent.AgeChanged(it)) },
             label = "Возраст",
+            placeholder = "17",
             error = state.fieldErrors["age"],
             enabled = !state.isLoading,
         )
 
-        Row {
-            Checkbox(
-                checked = state.safetyRulesAccepted,
-                onCheckedChange = { onEvent(BookingFormEvent.SafetyRulesToggled) },
-                enabled = !state.isLoading,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Я согласен с правилами безопасности")
-        }
+        ApexCheckRow(
+            checked = state.safetyRulesAccepted,
+            onToggle = { onEvent(BookingFormEvent.SafetyRulesToggled) },
+            text = "Я согласен с правилами безопасности",
+            enabled = !state.isLoading,
+        )
 
-        Row {
-            Checkbox(
-                checked = state.parentalConsentAccepted,
-                onCheckedChange = { onEvent(BookingFormEvent.ParentalConsentToggled) },
-                enabled = !state.isLoading,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Есть согласие родителя или законного представителя, если мне меньше 18 лет")
-        }
+        ApexCheckRow(
+            checked = state.parentalConsentAccepted,
+            onToggle = { onEvent(BookingFormEvent.ParentalConsentToggled) },
+            text = "Есть согласие родителя или законного представителя",
+            enabled = !state.isLoading,
+        )
+
+        Spacer(Modifier.height(18.dp))
+        Text("Минимальный возраст участия — 16 лет.", style = MaterialTheme.typography.bodyMedium)
 
         if (state.error != null) {
             ApexErrorBlock(
@@ -76,16 +104,12 @@ fun BookingFormScreen(
             )
         }
 
+        Spacer(Modifier.height(180.dp))
         ApexPrimaryButton(
-            text = "Создать бронь",
+            text = "Отправить заявку",
             onClick = { onEvent(BookingFormEvent.SubmitClicked) },
             enabled = state.canSubmit,
-            isLoading = state.isLoading,
-        )
-        ApexSecondaryButton(
-            text = "Назад",
-            onClick = { onEvent(BookingFormEvent.BackClicked) },
-            enabled = !state.isLoading,
+            loading = state.isLoading,
         )
     }
 }
