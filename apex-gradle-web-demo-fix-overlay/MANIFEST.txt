@@ -1,7 +1,0 @@
-README_GRADLE_FIX.md
-build.gradle.kts
-gradle.properties
-gradlew
-gradlew.bat
-settings.gradle.kts
-webApp/build.gradle.kts

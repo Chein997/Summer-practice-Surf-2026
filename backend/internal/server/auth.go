@@ -12,11 +12,10 @@ func (s *Server) handleRequestSMS(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "Некорректное тело запроса.")
 		return
 	}
-	req.Phone = strings.TrimSpace(req.Phone)
-	if req.Phone == "" || !strings.HasPrefix(req.Phone, "+") {
-		writeError(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "Введите телефон в международном формате.")
-		return
-	}
+	if !isValidPhone(req.Phone) {
+	writeError(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "Введите телефон в международном формате.")
+	return
+}
 
 	expiresAt := time.Now().Add(5 * time.Minute)
 	_, err := s.db.Exec(r.Context(), `
@@ -40,8 +39,13 @@ func (s *Server) handleVerifySMS(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Phone = strings.TrimSpace(req.Phone)
 	req.Code = strings.TrimSpace(req.Code)
-	if req.Phone == "" || req.Code == "" {
-		writeError(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "Введите телефон и SMS-код.")
+	if !isValidPhone(req.Phone) {
+	writeError(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "Введите телефон в международном формате.")
+	return
+	}
+
+	if req.Code == "" {
+		writeError(w, http.StatusUnprocessableEntity, "VALIDATION_ERROR", "Введите SMS-код.")
 		return
 	}
 

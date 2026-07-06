@@ -294,11 +294,11 @@ func validateCreateBooking(req CreateBookingRequest) (string, string) {
 	if strings.TrimSpace(req.Profile.FullName) == "" {
 		return "VALIDATION_ERROR", "Введите имя."
 	}
-	if !strings.HasPrefix(strings.TrimSpace(req.Profile.Phone), "+") {
-		return "VALIDATION_ERROR", "Введите телефон в международном формате."
+	if !isValidPhone(req.Profile.Phone) {
+	return "VALIDATION_ERROR", "Введите телефон в международном формате."
 	}
-	if !strings.Contains(strings.TrimSpace(req.Profile.Email), "@") {
-		return "VALIDATION_ERROR", "Введите корректный email."
+	if !isValidEmail(req.Profile.Email) {
+	return "VALIDATION_ERROR", "Введите корректный email."
 	}
 	if req.Profile.Age < 16 || req.Profile.Age > 120 {
 		return "VALIDATION_ERROR", "Возраст участника должен быть от 16 лет."

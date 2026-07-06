@@ -1,8 +1,0 @@
-go.mod: lines=6, bytes=90
-cmd/api/main.go: lines=56, bytes=1268
-internal/server/types.go: lines=143, bytes=4595
-internal/server/server.go: lines=166, bytes=4713
-internal/server/auth.go: lines=129, bytes=4537
-internal/server/slots.go: lines=172, bytes=4578
-internal/server/bookings.go: lines=453, bytes=14138
-internal/server/push.go: lines=76, bytes=2525
